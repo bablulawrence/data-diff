@@ -5,19 +5,19 @@ spark = SparkSession.builder.appName('datadiff').getOrCreate()
 def displayOutput(df, matched=True): 
     df.printSchema
     expr = [
-        'left.vendorId', 
-        'left.tpep_pickup_datetime', 
-        'left.tpep_dropoff_datetime', 
-        'left.fare_amount', 
-        'left.total_amount', 
-        'right.vendorId', 
-        'right.tpep_pickup_datetime', 
-        'right.tpep_dropoff_datetime', 
-        'right.fare_amount', 
-        'right.total_amount', 
+        'L_vendorId', 
+        'L_tpep_pickup_datetime', 
+        'L_tpep_dropoff_datetime', 
+        'L_fare_amount', 
+        'L_total_amount', 
+        'R_vendorId', 
+        'R_tpep_pickup_datetime', 
+        'R_tpep_dropoff_datetime', 
+        'R_fare_amount', 
+        'R_total_amount', 
         'matched'
     ]
-    df.selectExpr(expr).filter(col('matched') == matched).show()
+    df.selectExpr(expr).filter('matched').show()
 
 
 path = '/mnt/data/data_diff/files/matched/yellow_taxi'
