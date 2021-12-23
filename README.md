@@ -1,2 +1,2 @@
 # data diff
-Compare two files using PySpark
+Compare data from two sources using PySpark
