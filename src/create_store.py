@@ -1,6 +1,6 @@
 import argparse
 from pyspark.sql import SparkSession
-from dataDiff.schemaStore import createSchemaStore, getStoreDF, storeExists, deleteStore
+from dataDiff.schemaStore import createSchemaStore, storeExists
 from dataDiff.defs import yellowTaxi, greenTaxi
 
 parser = argparse.ArgumentParser(description='Create Schema Store',
@@ -16,12 +16,8 @@ spark = SparkSession.builder.appName('datadiff').getOrCreate()
 
 spark.sql(f"USE {args.databaseName}")
 
-# deleteStore(spark, storeName, storePath); exit()
-
 if (not storeExists(spark, args.storeName)):
     createSchemaStore(spark, args.storeName, args.storePath)
 
 yellowTaxi.addSchema(spark, args.storeName)
 greenTaxi.addSchema(spark, args.storeName)
-
-
