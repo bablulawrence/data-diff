@@ -1,11 +1,8 @@
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import *
-from pyspark.sql.types import *
 import json
-
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import udf, expr, struct
+from pyspark.sql.types import StructType, MapType, StringType
 from dataDiff.schemaStore import getStoreDF
-
-spark = SparkSession.builder.appName('datadiff').getOrCreate()
 
 def getJoinExpression(keyCols):
     expr = ""
@@ -32,29 +29,42 @@ def getMatchExpression(matchCols):
     return expr[:-5] #Remove the extra 'AND' at the end of expression
 
 
-def matchFile(row):
+def matchFile(spark, row):
     leftFileSchema = StructType.fromJson(json.loads(row['left_file_schema']))
     rightFileSchema = StructType.fromJson(json.loads(row['right_file_schema']))
 
-    leftDF = spark.read \
-        .format(row['left_file_format']) \
-        .option('header', row['left_file_header'] ) \
-        .option('delimiter', row['left_file_delimiter'] ) \
-        .schema(leftFileSchema) \
-        .load(row['left_file_path']) \
+    leftFileFormat = row['left_file_format'] 
+    if (leftFileFormat == 'csv'):
+        leftDF = spark.read \
+            .format(leftFileFormat) \
+            .option('header', row['left_file_header'] ) \
+            .option('delimiter', row['left_file_delimiter'] ) \
+            .schema(leftFileSchema) \
+            .load(row['left_file_path'])
+    else: #Skip header and delimiter for text and delta formats 
+        leftDF = spark.read \
+            .format(leftFileFormat) \
+            .schema(leftFileSchema) \
+            .load(row['left_file_path'])
 
-    rightDF = spark.read \
-        .format(row['left_file_format']) \
-        .option('header', row['left_file_header'] ) \
-        .option('delimiter', row['left_file_delimiter'] ) \
-        .schema(rightFileSchema) \
-        .load(row['right_file_path']) \
-        
+    rightFileFormat = row['right_file_format']
+    if (rightFileFormat == 'csv'):
+        rightDF = spark.read \
+            .format(rightFileFormat) \
+            .option('header', row['right_file_header'] ) \
+            .option('delimiter', row['right_file_delimiter'] ) \
+            .schema(rightFileSchema) \
+            .load(row['right_file_path'])
+    else: 
+        rightDF = spark.read \
+            .format(rightFileFormat) \
+            .schema(rightFileSchema) \
+            .load(row['right_file_path'])
+
     leftDF.createOrReplaceTempView('LEFT')
     rightDF.createOrReplaceTempView('RIGHT')
     
     df = spark.sql(getSelectExpression(leftDF.columns, rightDF.columns) + getJoinExpression(row['key_cols']))
-    # print(joinDF.schema)
 
     matchCols = row['match_cols']
     def unmatchedCols(row): 
@@ -78,8 +88,7 @@ def matchFile(row):
 def getDiff(spark, storeName) : 
     schemaStorItr = getStoreDF(spark, storeName).rdd.toLocalIterator()
     for row in schemaStorItr:        
-        # matchFile(row).show()
-        matchFile(row).write \
+        matchFile(spark, row).write \
             .format('delta') \
             .mode('overwrite') \
             .save(row['output_file_path'])
