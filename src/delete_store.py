@@ -1,7 +1,6 @@
 import argparse
 from pyspark.sql import SparkSession
-from dataDiff.schemaStore import createSchemaStore, getStoreDF, storeExists, deleteStore
-from dataDiff.defs import yellowTaxi, greenTaxi
+from dataDiff.schemaStore import deleteStore
 
 parser = argparse.ArgumentParser(description='Delete Schema Store',
     epilog="python delete_store.py --databaseName 'default' --storeName 'nyctaxi_schema' --storePath '/mnt/data/data_diff/nyctaxi_schema'"
